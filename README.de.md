@@ -1,5 +1,7 @@
 # Sprachauslöser für Capture One
 
+*[English version](README.md)*
+
 Freihändig auslösen per Sprachbefehl. Du sagst **„Capture One auslösen"**, die Kamera löst aus.
 
 Gedacht für Reprografie, Buchdigitalisierung und Objektfotografie — überall dort, wo beide Hände am Objekt sind und der Weg zur Tastatur stört.
@@ -122,3 +124,4 @@ Wer Capture One weitergehend steuern will — Varianten, Ebenen, Ausgabe —, fi
 ## Lizenz
 
 MIT
+# capture-one-sprachausloeser
