@@ -10,4 +10,4 @@ if [ ! -x "venv/bin/python" ]; then
     exit 1
 fi
 
-./venv/bin/python sprachausloeser.py
+./venv/bin/python voice_trigger.py

@@ -81,16 +81,16 @@ Die Bedienungshilfen fehlen. Systemeinstellungen → Datenschutz & Sicherheit �
 Falsches Mikrofon. Im Terminal sehen, welches benutzt wird:
 
 ```
-./venv/bin/python sprachausloeser.py --devices
+./venv/bin/python voice_trigger.py --devices
 ```
 
-Dann in `sprachausloeser.py` die Zeile `INPUT_DEVICE = None` auf die gewünschte Nummer ändern.
+Dann in `voice_trigger.py` die Zeile `INPUT_DEVICE = None` auf die gewünschte Nummer ändern.
 
 **Anderes Tastenkürzel gewünscht**
-In `sprachausloeser.py` die Zeilen `MAC_KEY` und `MAC_MODIFIERS` anpassen. Mögliche Modifikatoren: `command down`, `option down`, `shift down`, `control down`.
+In `voice_trigger.py` die Zeilen `MAC_KEY` und `MAC_MODIFIERS` anpassen. Mögliche Modifikatoren: `command down`, `option down`, `shift down`, `control down`.
 
 **Eigene Auslösephrase**
-Die Liste `TRIGGER_PHRASES` in `sprachausloeser.py` ändern. Nur Kleinbuchstaben verwenden. Zwei Wörter oder mehr nehmen, sonst häufen sich Fehlauslösungen.
+Die Liste `TRIGGER_PHRASES` in `voice_trigger.py` ändern. Nur Kleinbuchstaben verwenden. Zwei Wörter oder mehr nehmen, sonst häufen sich Fehlauslösungen.
 
 ---
 
