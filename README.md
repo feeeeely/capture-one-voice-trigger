@@ -122,3 +122,4 @@ Wer Capture One weitergehend steuern will — Varianten, Ebenen, Ausgabe —, fi
 ## Lizenz
 
 MIT
+# capture-one-sprachausloeser
