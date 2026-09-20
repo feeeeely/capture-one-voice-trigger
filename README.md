@@ -184,3 +184,21 @@ If you want broader control over Capture One — variants, layers, output — se
 ## License
 
 MIT
+
+---
+
+## Acknowledgements
+
+Speech recognition by [Vosk](https://alphacephei.com/vosk/), Apache 2.0.
+The English model `vosk-model-small-en-us-0.15` is Apache 2.0 as well. If you
+swap in a different one, check the licence column on the
+[model list](https://alphacephei.com/vosk/models) — not all of them are permissive.
+
+## Disclaimer
+
+Not affiliated with, endorsed by, or supported by Capture One A/S. "Capture One"
+is their trademark, used here only to describe what this tool works with.
+
+This is an independent program. It contains no Capture One code and changes
+nothing inside the application — it sends a keyboard shortcut, exactly as a foot
+pedal or a macro pad would.
