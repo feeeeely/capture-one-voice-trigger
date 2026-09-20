@@ -1,22 +1,22 @@
 #!/bin/bash
-# Einrichtung für den Sprachauslöser. Einmal ausführen, dann fertig.
+# One-time setup for Voice Trigger. Run once, then you're done.
 set -e
 
 cd "$(dirname "$0")"
 
-echo "Sprachauslöser für Capture One — Einrichtung"
-echo "============================================"
+echo "Voice Trigger for Capture One — setup"
+echo "====================================="
 echo
 
-# --- 1. macOS prüfen ------------------------------------------------
+# --- 1. macOS check -------------------------------------------------
 if [ "$(uname)" != "Darwin" ]; then
-    echo "FEHLER: Dieses Installationsskript ist für macOS."
-    echo "Für Windows siehe README."
+    echo "ERROR: this installer is for macOS."
+    echo "For Windows, see the README."
     exit 1
 fi
 
-# --- 2. Passendes Python finden -------------------------------------
-# Mindestens 3.10, weil cffi darunter keine Intel-Mac-Pakete hat.
+# --- 2. Find a suitable Python --------------------------------------
+# 3.10 minimum: cffi publishes no Intel-Mac wheels below that.
 PY=""
 for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
     if command -v "$candidate" >/dev/null 2>&1; then
@@ -28,49 +28,51 @@ for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
 done
 
 if [ -z "$PY" ]; then
-    echo "FEHLER: Es wird Python 3.10 oder neuer benötigt."
+    echo "ERROR: Python 3.10 or newer is required."
     echo
-    echo "Das mit macOS gelieferte Python ist zu alt."
-    echo "Installiere eine aktuelle Version von:"
+    echo "The Python that ships with macOS is too old."
+    echo "Install a current version from:"
     echo "    https://www.python.org/downloads/"
-    echo "und führe dieses Skript danach erneut aus."
+    echo "then run this script again."
     exit 1
 fi
 
-echo "Python gefunden: $($PY --version)"
+echo "Found Python: $($PY --version)"
 
-# --- 3. Virtuelle Umgebung ------------------------------------------
+# --- 3. Virtual environment -----------------------------------------
 if [ ! -d "venv" ]; then
-    echo "Lege virtuelle Umgebung an..."
+    echo "Creating virtual environment..."
     "$PY" -m venv venv
 fi
 
-echo "Installiere Pakete..."
+echo "Installing packages..."
 ./venv/bin/pip install --quiet --upgrade pip
-# vosk 0.3.44 ist die letzte Version mit macOS-Paketen. NICHT erhöhen.
+# 0.3.44 is the last vosk release with macOS wheels. Do not bump.
 ./venv/bin/pip install --quiet "vosk==0.3.44" sounddevice
 
-# --- 4. Sprachmodell ------------------------------------------------
-MODEL="vosk-model-small-de-0.15"
+# --- 4. Speech model ------------------------------------------------
+# Override with:  MODEL=vosk-model-small-de-0.15 bash setup.sh
+MODEL="${MODEL:-vosk-model-small-en-us-0.15}"
+
 if [ ! -d "$MODEL" ]; then
-    echo "Lade deutsches Sprachmodell (ca. 45 MB)..."
+    echo "Downloading speech model $MODEL (~45 MB)..."
     curl -fL# -o model.zip "https://alphacephei.com/vosk/models/${MODEL}.zip"
     unzip -q model.zip
     rm model.zip
 else
-    echo "Sprachmodell bereits vorhanden."
+    echo "Speech model already present."
 fi
 
 chmod +x start.command 2>/dev/null || true
 
 echo
-echo "============================================"
-echo "Fertig."
+echo "====================================="
+echo "Done."
 echo
-echo "NOCH ZU TUN in Capture One:"
-echo "  Bearbeiten > Tastaturkürzel bearbeiten"
-echo "  -> Set duplizieren und oben AUSWÄHLEN"
-echo "  -> Befehl 'Aufnahme' das Kürzel geben:  Option + Shift + A"
+echo "STILL TO DO in Capture One:"
+echo "  Edit > Edit Keyboard Shortcuts"
+echo "  -> Duplicate the default set, then SELECT it in the dropdown"
+echo "  -> Give the 'Capture' command this shortcut:  Option + Shift + A"
 echo
-echo "Dann starten mit einem Doppelklick auf:  start.command"
-echo "============================================"
+echo "Then double-click:  start.command"
+echo "====================================="

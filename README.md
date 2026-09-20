@@ -1,124 +1,186 @@
-# Sprachauslöser für Capture One
+# Voice Trigger for Capture One
 
-Freihändig auslösen per Sprachbefehl. Du sagst **„Capture One auslösen"**, die Kamera löst aus.
+*[Deutsche Version](README.de.md)*
 
-Gedacht für Reprografie, Buchdigitalisierung und Objektfotografie — überall dort, wo beide Hände am Objekt sind und der Weg zur Tastatur stört.
+Hands-free tethered capture. Say **"Capture One take a photo"** and the camera fires.
 
-Läuft vollständig offline. Keine Cloud, kein Konto, keine Internetverbindung im Betrieb.
+Built for repro work, book digitisation and object photography — anywhere both hands are on the object and walking back to the keyboard breaks the shot.
+
+Runs entirely offline. No cloud, no account, no internet connection while in use.
+
+Works with Capture One Pro and Capture One CH.
 
 ---
 
-## Voraussetzungen
+## Requirements
 
 - macOS
-- Capture One (Pro oder CH) mit funktionierendem Tethering
-- Python 3.10 oder neuer — [hier herunterladen](https://www.python.org/downloads/), falls nicht vorhanden
+- Capture One (Pro or CH) with working tethering
+- Python 3.10 or newer — [download here](https://www.python.org/downloads/) if you don't have it
 
-Beim Installieren von Python nichts einstellen, die Standardwerte genügen.
+The default options during the Python install are fine.
 
 ---
 
-## Einrichtung
+## Setup
 
-**1. Dieses Repository herunterladen**
+**1. Download this repository**
 
-Oben auf `Code` → `Download ZIP`, dann entpacken. Der Ordner kann liegen, wo du willst.
+Click `Code` → `Download ZIP`, then unzip it. The folder can live anywhere.
 
-**2. Installation starten**
+**2. Run the installer**
 
-Rechtsklick auf den entpackten Ordner → „Neues Terminal beim Ordner". Dann eintippen:
+Right-click the unzipped folder → "New Terminal at Folder". Then type:
 
 ```
 bash setup.sh
 ```
 
-Das dauert ein paar Minuten. Es lädt die Spracherkennung herunter (ca. 45 MB) und richtet alles ein.
+This takes a few minutes. It downloads the speech model (~45 MB) and sets everything up.
 
-**3. Kürzel in Capture One anlegen**
+**2a. If macOS blocks it**
 
-`Bearbeiten` → `Tastaturkürzel bearbeiten`
+On first launch macOS may say:
 
-- Oben das Standard-Set **duplizieren** (das Original lässt sich nicht ändern)
-- **Wichtig:** Oben im Auswahlmenü auf dein neues Set umschalten. Wird das vergessen, passiert später nichts.
-- Befehl **„Aufnahme"** suchen (Kategorie *Kamera*) und das Kürzel **Option + Shift + A** vergeben
+> "start.command" cannot be opened because it is from an unidentified developer.
 
-Zum Prüfen: Das Kürzel einmal von Hand drücken. Löst die Kamera nicht aus, stimmt etwas an dieser Stelle nicht — dann hilft auch das Skript nicht weiter.
+This is normal for anything outside the App Store. macOS flags every downloaded file regardless of its contents.
 
-**4. Starten**
+Run this once, in the same Terminal from step 2:
 
-Doppelklick auf **`start.command`**
+```
+xattr -dr com.apple.quarantine .
+```
 
-Beim ersten Start fragt macOS zweimal nach Berechtigungen:
+The trailing dot matters — it means "this folder". Everything starts normally afterwards.
 
-- **Mikrofon** — erlauben
-- **Bedienungshilfen** — erlauben, danach das Terminal schließen und `start.command` erneut starten
+If that makes you uneasy: the full source is in this repository. For a program that listens to your microphone continuously and sends keystrokes, scepticism is warranted — read the code first, it's short.
 
-Das Fenster muss geöffnet bleiben, solange du den Sprachauslöser benutzt. Beenden mit `Strg + C` oder durch Schließen des Fensters.
+**3. Assign the shortcut in Capture One**
+
+`Edit` → `Edit Keyboard Shortcuts`
+
+- **Duplicate** the default set (the original is read-only)
+- **Important:** switch to your new set in the dropdown at the top. Forgetting this is the single most common failure.
+- Find the **"Capture"** command (category *Camera*) and assign **Option + Shift + A**
+
+Test it: press the shortcut by hand. If the camera doesn't fire, something is wrong here — the script won't help until it does.
+
+**4. Start**
+
+Double-click **`start.command`**
+
+macOS asks for two permissions on first run:
+
+- **Microphone** — allow
+- **Accessibility** — allow, then close the Terminal window and launch `start.command` again
+
+The window must stay open while you use the trigger. Quit with `Ctrl + C` or by closing the window.
 
 ---
 
-## Benutzung
+## Usage
 
-Capture One in den Vordergrund holen, dann sprechen:
+Bring Capture One to the front, then say either:
 
-> **„Capture One auslösen"**
+> **"Capture One take a photo"**
+> **"Capture One shoot"**
 
-Ein heller Ton bestätigt die Auslösung, ein tiefer meldet einen Fehler. Im Fenster erscheint zusätzlich, was erkannt wurde.
+A high tone confirms the shot, a low tone reports a failure. The window also logs what was recognised.
 
-Die Phrase ist bewusst zweiteilig. Ein einzelnes „auslösen" würde im Gespräch ständig fehlauslösen.
+The phrases are deliberately several words long. A single "shoot" would fire constantly during normal conversation.
 
 ---
 
-## Wenn etwas nicht klappt
+## Using another language
 
-**„Es hört mich, aber es passiert nichts"**
-Das Kürzel kommt nicht an. Drück Option + Shift + A von Hand in Capture One. Passiert dabei nichts, ist entweder das duplizierte Set nicht ausgewählt oder keine Kamera verbunden.
+Two changes.
 
-**„osascript is not allowed to send keystrokes"**
-Die Bedienungshilfen fehlen. Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen → Terminal aktivieren. Terminal danach komplett beenden (Cmd + Q) und neu starten, sonst greift die Änderung nicht.
+**1. Swap the model**
 
-**„Es hört mich gar nicht"**
-Falsches Mikrofon. Im Terminal sehen, welches benutzt wird:
+Download one for your language from [alphacephei.com/vosk/models](https://alphacephei.com/vosk/models) — the small ones (~50 MB) are plenty, since the script only distinguishes between a couple of fixed phrases. Unzip it into the project folder and delete the English one.
+
+For German, the installer can fetch it for you:
+
+```
+MODEL=vosk-model-small-de-0.15 bash setup.sh
+```
+
+**2. Change the trigger phrases**
+
+Edit `TRIGGER_PHRASES` in `voice_trigger.py`:
+
+```python
+TRIGGER_PHRASES = [
+    "capture one auslösen",
+    "capture one foto",
+]
+```
+
+Lowercase only, no punctuation. Two words or more.
+
+Every word must exist in the model's vocabulary — unknown words are skipped silently, which looks exactly like the microphone not working. To check, run:
+
+```
+./venv/bin/python voice_trigger.py --verbose
+```
+
+That prints everything the recogniser hears plus any "missing in vocabulary" warnings.
+
+Nothing else needs touching. The shortcut, the audio handling and the Capture One side are language-independent.
+
+---
+
+## Troubleshooting
+
+**"From an unidentified developer"**
+See step 2a. Run `xattr -dr com.apple.quarantine .` in the project folder.
+
+**"It hears me but nothing happens"**
+The keystroke isn't landing. Press Option + Shift + A by hand in Capture One. If nothing happens, either the duplicated shortcut set isn't selected or no camera is connected.
+
+**"osascript is not allowed to send keystrokes"**
+Accessibility permission is missing. System Settings → Privacy & Security → Accessibility → enable Terminal. Then quit Terminal completely (Cmd + Q) and restart — the change only takes effect on launch.
+
+**"It doesn't hear me at all"**
+Wrong microphone. List the available ones:
 
 ```
 ./venv/bin/python voice_trigger.py --devices
 ```
 
-Dann in `voice_trigger.py` die Zeile `INPUT_DEVICE = None` auf die gewünschte Nummer ändern.
+Then set `INPUT_DEVICE = None` in `voice_trigger.py` to the number you want.
 
-**Anderes Tastenkürzel gewünscht**
-In `voice_trigger.py` die Zeilen `MAC_KEY` und `MAC_MODIFIERS` anpassen. Mögliche Modifikatoren: `command down`, `option down`, `shift down`, `control down`.
-
-**Eigene Auslösephrase**
-Die Liste `TRIGGER_PHRASES` in `voice_trigger.py` ändern. Nur Kleinbuchstaben verwenden. Zwei Wörter oder mehr nehmen, sonst häufen sich Fehlauslösungen.
+**Different keyboard shortcut**
+Edit `MAC_KEY` and `MAC_MODIFIERS` in `voice_trigger.py`. Available modifiers: `command down`, `option down`, `shift down`, `control down`.
 
 ---
 
-## Wie es funktioniert
+## How it works
 
-Das Skript hört durchgehend am Mikrofon mit und vergleicht das Gehörte mit einer kurzen, festen Wortliste. Bei einem Treffer sendet es das Tastenkürzel an Capture One — genau so, als hättest du es selbst gedrückt. Capture One merkt keinen Unterschied.
+The script listens continuously and matches what it hears against a short, fixed word list. On a match it sends the keyboard shortcut to Capture One — exactly as if you had pressed it yourself. Capture One can't tell the difference.
 
-Die Spracherkennung übernimmt [Vosk](https://alphacephei.com/vosk/) mit einem kleinen deutschen Modell. Weil nur zwischen zwei festen Phrasen unterschieden werden muss, ist die Trefferquote auch bei Umgebungsgeräuschen hoch und die Verzögerung liegt unter einer Sekunde.
-
----
-
-## Grenzen
-
-- **Nur macOS getestet.** Der Windows-Teil ist im Code vorhanden, aber ungeprüft. Rückmeldungen willkommen.
-- **Nur Deutsch.** Für andere Sprachen ein passendes [Vosk-Modell](https://alphacephei.com/vosk/models) in den Ordner legen und `TRIGGER_PHRASES` anpassen. Der Rest funktioniert unverändert.
-- **Capture One muss im Vordergrund sein.** Das Skript holt es selbst nach vorn, bei mehreren Fenstern kann es aber das falsche erwischen.
-- **Vosk ist auf 0.3.44 festgelegt.** Ab 0.3.45 gibt es keine macOS-Pakete mehr. Nicht erhöhen.
+Recognition is handled by [Vosk](https://alphacephei.com/vosk/). Because it only has to distinguish between two fixed phrases, accuracy stays high even with background noise, and latency is under a second.
 
 ---
 
-## Was es nicht ist
+## Limitations
 
-Kein Sprachassistent. Es versteht genau eine Anweisung und macht sonst nichts. Das ist Absicht: Ein Sprachmodell dazwischen würde mehrere Sekunden kosten, eine Bestätigung verlangen und gelegentlich etwas anderes tun als gewünscht. Für einen Auslöser ist das untauglich.
-
-Wer Capture One weitergehend steuern will — Varianten, Ebenen, Ausgabe —, findet das bei [capture-one-mcp](https://glama.ai/mcp/servers/byjustinjones/capture-one-mcp). Tethered Capture ist dort ausdrücklich nicht enthalten, insofern ergänzen sich beide.
+- **Only tested on macOS.** Windows code is present but unverified. Reports welcome.
+- **Capture One must be frontmost.** The script brings it forward itself, but with several windows open it may pick the wrong one.
+- **Vosk is pinned to 0.3.44.** From 0.3.45 onwards there are no macOS wheels. Don't bump it.
+- **Python 3.10 minimum.** `cffi` publishes no Intel-Mac wheels for 3.9, which is what macOS ships as the system Python.
 
 ---
 
-## Lizenz
+## What this is not
+
+Not a voice assistant. It understands exactly one instruction and does nothing else. That's deliberate: putting a language model in the loop would cost several seconds, require a confirmation click, and occasionally do something other than what you asked. For a shutter release that's useless.
+
+If you want broader control over Capture One — variants, layers, output — see [capture-one-mcp](https://glama.ai/mcp/servers/byjustinjones/capture-one-mcp). Tethered capture is explicitly out of scope there, so the two complement each other.
+
+---
+
+## License
 
 MIT

@@ -1,43 +1,45 @@
 #!/usr/bin/env python3
 """
-Sprachauslöser für Capture One  —  macOS + Windows
-====================================================
+Voice Trigger for Capture One  —  macOS + Windows
+==================================================
 
-Sagt man "Capture One auslösen", wird in Capture One eine Aufnahme
-ausgelöst. Läuft offline, keine Cloud, keine Bestätigung, keine Taste.
+Say "Capture One take a photo" and the tethered camera fires.
+Runs fully offline. No cloud, no account, no confirmation click.
 
-HIER IST NICHTS ANZUPASSEN. Das Skript sucht das Vosk-Modell selbst
-und funktioniert unabhängig davon, in welchem Ordner es liegt.
+NOTHING NEEDS EDITING HERE. The script locates the Vosk model on its
+own and works regardless of which folder it lives in.
 
-------------------------------------------------------------------
-EINMALIGE VORBEREITUNG
-------------------------------------------------------------------
-1) Pakete installieren:
+--------------------------------------------------------------------
+ONE-TIME SETUP
+--------------------------------------------------------------------
+1) Install the packages:
        pip install "vosk==0.3.44" sounddevice
-   ACHTUNG: Die 0.3.44 ist wichtig. Ab 0.3.45 gibt es keine
-   macOS-Pakete mehr.
+   The 0.3.44 pin matters. From 0.3.45 onwards there are no macOS
+   wheels. Do not bump it.
 
-2) Deutsches Modell herunterladen und entpacken — irgendwohin,
-   der Ordner "vosk-model-small-de-0.15" wird automatisch gefunden,
-   solange er neben diesem Skript, in ~/sprachausloeser, auf dem
-   Schreibtisch oder in ~/Downloads liegt:
+2) Download a Vosk model and unzip it anywhere near this script —
+   next to it, in ~/Downloads, or on the Desktop. Any folder starting
+   with "vosk-model-" is found automatically.
        https://alphacephei.com/vosk/models
 
 3) In Capture One:
-       Bearbeiten > Tastaturkürzel bearbeiten
-       -> Set duplizieren (das Original ist schreibgeschützt)
-       -> Befehl "Aufnahme" suchen
-       -> GENAU DIESES KÜRZEL vergeben:
-              Mac:     Cmd + Alt + Shift + A
-              Windows: Strg + Alt + Shift + A
+       Edit > Edit Keyboard Shortcuts
+       -> Duplicate the default set, then SELECT it in the dropdown
+       -> Find the "Capture" command (category: Camera)
+       -> Assign exactly this shortcut:
+              macOS:   Option + Shift + A
+              Windows: Ctrl + Alt + Shift + A
 
-4) Starten:
-       python3 sprachausloeser.py
+4) Run it:
+       python3 voice_trigger.py
 
-   Geräteliste anzeigen:
-       python3 sprachausloeser.py --devices
+   List microphones:
+       python3 voice_trigger.py --devices
 
-   Beenden mit Strg + C.
+   Show recognition diagnostics (useful when changing phrases):
+       python3 voice_trigger.py --verbose
+
+   Quit with Ctrl + C.
 """
 
 import glob
@@ -55,83 +57,92 @@ from vosk import Model, KaldiRecognizer, SetLogLevel
 IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
 
-# =================================================================
-# Auslöse-Phrasen
-# Bewusst zweiteilig: ein einzelnes "auslösen" fällt im Gespräch
-# ständig und würde ungewollt Fotos machen.
-# =================================================================
+# ====================================================================
+# Trigger phrases
+#
+# Any of these fires the shutter. Lowercase only, no punctuation.
+# Use two words or more — a single word causes constant false
+# triggers during normal conversation.
+#
+# Every word must exist in your model's vocabulary. Unknown words are
+# skipped silently, so run with --verbose after changing these and
+# watch for "missing in vocabulary" warnings.
+# ====================================================================
 TRIGGER_PHRASES = [
-    "capture one auslösen",
-    "capture one aufnahme",
+    "capture one take a photo",
+    "capture one shoot",
 ]
 
-COOLDOWN = 2.0        # Sekunden Sperrzeit nach einer Auslösung
-INPUT_DEVICE = None   # None = Standardmikrofon. Oder Gerätenummer aus --devices.
+COOLDOWN = 2.0        # seconds of lockout after a shot
+INPUT_DEVICE = None   # None = system default. Or a number from --devices.
 
-# Kürzel, das in Capture One für "Aufnahme" hinterlegt sein muss
+# Must match the shortcut assigned in Capture One
 MAC_KEY = "a"
 MAC_MODIFIERS = "option down, shift down"
 WIN_SHORTCUT = "ctrl+alt+shift+a"
 
-MAC_APP_HINT = "Capture One"
+APP_HINT = "Capture One"
 WIN_PROCESS = "Capture One.exe"
 
 
-# =================================================================
-# Modell automatisch finden
-# =================================================================
+# ====================================================================
+# Locate the speech model
+# ====================================================================
 
 def find_model():
-    """Sucht den entpackten Vosk-Modellordner an den üblichen Orten."""
+    """Find an unpacked Vosk model folder in the usual places."""
     env = os.environ.get("VOSK_MODEL", "").strip()
     if env:
         if os.path.isdir(env):
             return env
-        sys.exit(f"VOSK_MODEL zeigt auf einen Ordner, den es nicht gibt:\n  {env}")
+        sys.exit(f"VOSK_MODEL points to a folder that does not exist:\n  {env}")
 
     here = os.path.dirname(os.path.abspath(__file__))
     home = os.path.expanduser("~")
 
-    # Reihenfolge: neben dem Skript, dann die üblichen Ablageorte.
     patterns = [
         os.path.join(here, "vosk-model-*"),
         os.path.join(here, "*", "vosk-model-*"),
-        os.path.join(home, "sprachausloeser", "vosk-model-*"),
+        os.path.join(home, "Downloads", "vosk-model-*"),
         os.path.join(home, "Desktop", "vosk-model-*"),
         os.path.join(home, "Desktop", "*", "vosk-model-*"),
-        os.path.join(home, "Downloads", "vosk-model-*"),
         os.path.join(home, "vosk-model-*"),
     ]
 
     found = []
     for pat in patterns:
         for path in sorted(glob.glob(pat)):
-            # Ein entpacktes Modell enthält immer einen "am"- oder "conf"-Ordner.
+            # An unpacked model always contains an "am" or "conf" folder.
             if os.path.isdir(path) and (
                 os.path.isdir(os.path.join(path, "am"))
                 or os.path.isdir(os.path.join(path, "conf"))
             ):
-                found.append(path)
+                if path not in found:
+                    found.append(path)
 
     if not found:
         sys.exit(
-            "Kein Vosk-Modell gefunden. Gesucht wurde in:\n  "
+            "No Vosk model found. Looked in:\n  "
             + "\n  ".join(patterns)
-            + "\n\nModell herunterladen und entpacken:\n"
+            + "\n\nDownload one and unzip it next to this script:\n"
             "  https://alphacephei.com/vosk/models\n"
-            "  (vosk-model-small-de-0.15 reicht völlig)\n\n"
-            "Liegt es woanders, den Pfad so übergeben:\n"
-            '  VOSK_MODEL="/pfad/zum/modell" python3 sprachausloeser.py'
+            "  (the small models are plenty)\n\n"
+            "If it lives elsewhere, point at it directly:\n"
+            '  VOSK_MODEL="/path/to/model" python3 voice_trigger.py'
         )
 
-    # Deutsche Modelle bevorzugen, falls mehrere da sind.
-    german = [p for p in found if "-de" in os.path.basename(p)]
-    return (german or found)[0]
+    if len(found) > 1:
+        print("Several models found — using the first:")
+        for p in found:
+            print(f"    {os.path.basename(p)}")
+        print("  Set VOSK_MODEL to choose explicitly.\n")
+
+    return found[0]
 
 
-# =================================================================
-# Auslösen
-# =================================================================
+# ====================================================================
+# Firing the shutter
+# ====================================================================
 
 if IS_MAC:
 
@@ -139,12 +150,15 @@ if IS_MAC:
         subprocess.Popen(["afplay", f"/System/Library/Sounds/{sound}.aiff"],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    beep_ok = lambda: _play("Glass")
-    beep_fail = lambda: _play("Basso")
+    def beep_ok():
+        _play("Glass")
+
+    def beep_fail():
+        _play("Basso")
 
     def fire():
         script = (
-            f'tell application "{MAC_APP_HINT}" to activate\n'
+            f'tell application "{APP_HINT}" to activate\n'
             f"delay 0.2\n"
             f'tell application "System Events" to '
             f'keystroke "{MAC_KEY}" using {{{MAC_MODIFIERS}}}'
@@ -165,8 +179,11 @@ elif IS_WINDOWS:
     import win32process
     import psutil
 
-    beep_ok = lambda: winsound.Beep(1200, 120)
-    beep_fail = lambda: winsound.Beep(300, 400)
+    def beep_ok():
+        winsound.Beep(1200, 120)
+
+    def beep_fail():
+        winsound.Beep(300, 400)
 
     def _is_front():
         hwnd = win32gui.GetForegroundWindow()
@@ -183,15 +200,15 @@ elif IS_WINDOWS:
 
         def _enum(hwnd, _):
             if win32gui.IsWindowVisible(hwnd) and \
-               MAC_APP_HINT.lower() in win32gui.GetWindowText(hwnd).lower():
+               APP_HINT.lower() in win32gui.GetWindowText(hwnd).lower():
                 hits.append(hwnd)
 
         win32gui.EnumWindows(_enum, None)
         if not hits:
             return False
         try:
-            win32gui.ShowWindow(hits[0], 9)
-            keyboard.press_and_release("alt")
+            win32gui.ShowWindow(hits[0], 9)          # SW_RESTORE
+            keyboard.press_and_release("alt")        # beat the foreground lock
             win32gui.SetForegroundWindow(hits[0])
             time.sleep(0.25)
             return True
@@ -200,7 +217,7 @@ elif IS_WINDOWS:
 
     def fire():
         if not _is_front() and not _focus():
-            print("  !! Capture One nicht gefunden.")
+            print("  !! Capture One not found.")
             beep_fail()
             return False
         keyboard.send(WIN_SHORTCUT)
@@ -208,24 +225,24 @@ elif IS_WINDOWS:
         return True
 
 else:
-    sys.exit("Dieses Skript läuft nur unter macOS oder Windows.")
+    sys.exit("This script runs on macOS and Windows only.")
 
 
-# =================================================================
+# ====================================================================
 
 def list_devices():
-    print("Verfügbare Eingabegeräte:\n")
+    print("Available input devices:\n")
     for i, d in enumerate(sd.query_devices()):
         if d["max_input_channels"] > 0:
             print(f"  [{i:2}] {d['name']}  "
-                  f"({d['max_input_channels']} Kanäle, "
+                  f"({d['max_input_channels']} channels, "
                   f"{int(d['default_samplerate'])} Hz)")
-    print("\nNummer oben bei INPUT_DEVICE eintragen, "
-          "oder None für das Standardgerät.")
+    print("\nPut the number into INPUT_DEVICE above, "
+          "or leave None for the system default.")
 
 
 def pick_samplerate(device):
-    """Nimmt 16000, wenn das Gerät es kann — sonst dessen eigene Rate."""
+    """Use 16000 if the device supports it, otherwise its own rate."""
     for rate in (16000, 48000, 44100):
         try:
             sd.check_input_settings(device=device, samplerate=rate,
@@ -238,8 +255,10 @@ def pick_samplerate(device):
     return int(info["default_samplerate"])
 
 
-def main():
-    SetLogLevel(-1)
+def main(verbose=False):
+    # Verbose surfaces "missing in vocabulary" warnings, which is the
+    # only way to tell why a phrase never matches.
+    SetLogLevel(0 if verbose else -1)
 
     model_path = find_model()
     samplerate = pick_samplerate(INPUT_DEVICE)
@@ -247,12 +266,12 @@ def main():
     info = sd.query_devices(INPUT_DEVICE, "input") if INPUT_DEVICE is not None \
         else sd.query_devices(kind="input")
 
-    print(f"Sprachauslöser aktiv  ({platform.system()})")
-    print(f"  Modell:    {os.path.basename(model_path)}")
-    print(f"  Mikrofon:  {info['name']}")
-    print(f"  Abtastung: {samplerate} Hz")
-    print(f"  Phrasen:   " + "  |  ".join(TRIGGER_PHRASES))
-    print("\nBeenden mit Strg+C\n")
+    print(f"Voice Trigger active  ({platform.system()})")
+    print(f"  Model:      {os.path.basename(model_path)}")
+    print(f"  Microphone: {info['name']}")
+    print(f"  Sample rate:{samplerate} Hz")
+    print(f"  Phrases:    " + "  |  ".join(TRIGGER_PHRASES))
+    print("\nQuit with Ctrl+C\n")
 
     model = Model(model_path)
     grammar = json.dumps(TRIGGER_PHRASES + ["[unk]"], ensure_ascii=False)
@@ -277,17 +296,21 @@ def main():
             if rec.AcceptWaveform(data):
                 text = json.loads(rec.Result()).get("text", "").strip()
             else:
+                # Partial results react faster once the phrase is complete.
                 text = json.loads(rec.PartialResult()).get("partial", "").strip()
 
             if not text:
                 continue
+
+            if verbose:
+                print(f"    heard: {text}")
 
             if any(p in text for p in TRIGGER_PHRASES):
                 now = time.time()
                 if now - last_fire < COOLDOWN:
                     continue
                 last_fire = now
-                print(f"[{time.strftime('%H:%M:%S')}] '{text}' -> auslösen")
+                print(f"[{time.strftime('%H:%M:%S')}] '{text}' -> firing")
                 fire()
                 rec.Reset()
 
@@ -297,6 +320,6 @@ if __name__ == "__main__":
         list_devices()
         sys.exit(0)
     try:
-        main()
+        main(verbose="--verbose" in sys.argv)
     except KeyboardInterrupt:
-        print("\nBeendet.")
+        print("\nStopped.")

@@ -1,12 +1,12 @@
 #!/bin/bash
-# Doppelklick startet den Sprachauslöser.
+# Double-click to start the voice trigger.
 cd "$(dirname "$0")"
 
 if [ ! -x "venv/bin/python" ]; then
-    echo "Die Einrichtung fehlt noch."
-    echo "Führe zuerst setup.sh aus (siehe README)."
+    echo "Setup has not been run yet."
+    echo "Run setup.sh first (see README)."
     echo
-    read -p "Zum Schließen Enter drücken."
+    read -p "Press Enter to close."
     exit 1
 fi
 
