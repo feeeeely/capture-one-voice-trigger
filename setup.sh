@@ -72,7 +72,8 @@ echo
 echo "STILL TO DO in Capture One:"
 echo "  Edit > Edit Keyboard Shortcuts"
 echo "  -> Duplicate the default set, then SELECT it in the dropdown"
-echo "  -> Give the 'Capture' command this shortcut:  Option + Shift + A"
+echo "  -> 'Capture'                     ->  Option + Shift + A"
+echo "  -> 'Start/Stop Camera Autofocus'  ->  Option + Shift + F"
 echo
 echo "Then double-click:  start.command"
 echo "====================================="

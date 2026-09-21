@@ -2,7 +2,7 @@
 
 *[Deutsche Version](README.de.md)*
 
-Hands-free tethered capture. Say **"Capture One take a photo"** and the camera fires.
+Hands-free tethered capture. Say **"Capture One focus"** and the camera focuses, **"Capture One take a photo"** and it fires.
 
 Built for repro work, book digitisation and object photography — anywhere both hands are on the object and walking back to the keyboard breaks the shot.
 
@@ -63,8 +63,9 @@ If that makes you uneasy: the full source is in this repository. For a program t
 - **Duplicate** the default set (the original is read-only)
 - **Important:** switch to your new set in the dropdown at the top. Forgetting this is the single most common failure.
 - Find the **"Capture"** command (category *Camera*) and assign **Option + Shift + A**
+- Find **"Start/Stop Camera Autofocus"** and assign **Option + Shift + F**. The search field at the top of the dialog finds it fastest.
 
-Test it: press the shortcut by hand. If the camera doesn't fire, something is wrong here — the script won't help until it does.
+Test both by hand. If the camera doesn't focus or fire, something is wrong here — the script won't help until it does.
 
 **4. Start**
 
@@ -81,12 +82,16 @@ The window must stay open while you use the trigger. Quit with `Ctrl + C` or by 
 
 ## Usage
 
-Bring Capture One to the front, then say either:
+Bring Capture One to the front, then say:
 
-> **"Capture One take a photo"**
-> **"Capture One shoot"**
+| Say | What happens | Sound |
+|---|---|---|
+| **"Capture One focus"** | camera focuses | short tick |
+| **"Capture One take a photo"** or **"Capture One shoot"** | camera fires | bright chime |
 
-A high tone confirms the shot, a low tone reports a failure. The window also logs what was recognised.
+A low tone reports a failure. The window also logs what was recognised.
+
+Focus and capture work in quick succession — say "focus", let the camera settle, then "take a photo". Each command only locks itself for a moment, so an echo can't fire the same thing twice, but it never blocks the other one.
 
 The phrases are deliberately several words long. A single "shoot" would fire constantly during normal conversation.
 
@@ -106,16 +111,24 @@ For German, the installer can fetch it for you:
 MODEL=vosk-model-small-de-0.15 bash setup.sh
 ```
 
-**2. Change the trigger phrases**
+**2. Change the phrases**
 
-Edit `TRIGGER_PHRASES` in `voice_trigger.py`:
+Edit the `phrases` lines inside `COMMANDS` at the top of `voice_trigger.py`:
 
 ```python
-TRIGGER_PHRASES = [
-    "capture one auslösen",
-    "capture one foto",
-]
+COMMANDS = {
+    "focus": {
+        "phrases": ["capture one fokus"],
+        ...
+    },
+    "capture": {
+        "phrases": ["capture one auslösen", "capture one foto"],
+        ...
+    },
+}
 ```
+
+Leave everything else in `COMMANDS` as it is.
 
 Lowercase only, no punctuation. Two words or more.
 
@@ -137,7 +150,10 @@ Nothing else needs touching. The shortcut, the audio handling and the Capture On
 See step 2a. Run `xattr -dr com.apple.quarantine .` in the project folder.
 
 **"It hears me but nothing happens"**
-The keystroke isn't landing. Press Option + Shift + A by hand in Capture One. If nothing happens, either the duplicated shortcut set isn't selected or no camera is connected.
+The keystroke isn't landing. Press Option + Shift + A (or Option + Shift + F for focus) by hand in Capture One. If nothing happens, either the duplicated shortcut set isn't selected or no camera is connected.
+
+**"Capture works, focus does nothing"**
+Not every camera supports autofocus over a tethered connection. Open the *Camera Focus* tool in Capture One: if its AF button is greyed out, your camera or lens doesn't offer it. Also check that the lens itself is switched to AF.
 
 **"osascript is not allowed to send keystrokes"**
 Accessibility permission is missing. System Settings → Privacy & Security → Accessibility → enable Terminal. Then quit Terminal completely (Cmd + Q) and restart — the change only takes effect on launch.
@@ -152,15 +168,15 @@ Wrong microphone. List the available ones:
 Then set `INPUT_DEVICE = None` in `voice_trigger.py` to the number you want.
 
 **Different keyboard shortcut**
-Edit `MAC_KEY` and `MAC_MODIFIERS` in `voice_trigger.py`. Available modifiers: `command down`, `option down`, `shift down`, `control down`.
+Edit `mac_key` and `mac_modifiers` for the command in question inside `COMMANDS` in `voice_trigger.py`. Available modifiers: `command down`, `option down`, `shift down`, `control down`.
 
 ---
 
 ## How it works
 
-The script listens continuously and matches what it hears against a short, fixed word list. On a match it sends the keyboard shortcut to Capture One — exactly as if you had pressed it yourself. Capture One can't tell the difference.
+The script listens continuously and matches what it hears against a short, fixed word list. On a match it sends the corresponding keyboard shortcut to Capture One — exactly as if you had pressed it yourself. Capture One can't tell the difference.
 
-Recognition is handled by [Vosk](https://alphacephei.com/vosk/). Because it only has to distinguish between two fixed phrases, accuracy stays high even with background noise, and latency is under a second.
+Recognition is handled by [Vosk](https://alphacephei.com/vosk/). Because it only has to distinguish between a handful of fixed phrases, accuracy stays high even with background noise, and latency is under a second.
 
 ---
 
@@ -175,7 +191,7 @@ Recognition is handled by [Vosk](https://alphacephei.com/vosk/). Because it only
 
 ## What this is not
 
-Not a voice assistant. It understands exactly one instruction and does nothing else. That's deliberate: putting a language model in the loop would cost several seconds, require a confirmation click, and occasionally do something other than what you asked. For a shutter release that's useless.
+Not a voice assistant. It understands two instructions — focus and fire — and nothing else. That's deliberate: putting a language model in the loop would cost several seconds, require a confirmation click, and occasionally do something other than what you asked. For a shutter release that's useless.
 
 If you want broader control over Capture One — variants, layers, output — see [capture-one-mcp](https://glama.ai/mcp/servers/byjustinjones/capture-one-mcp). Tethered capture is explicitly out of scope there, so the two complement each other.
 
@@ -184,3 +200,21 @@ If you want broader control over Capture One — variants, layers, output — se
 ## License
 
 MIT
+
+---
+
+## Acknowledgements
+
+Speech recognition by [Vosk](https://alphacephei.com/vosk/), Apache 2.0.
+The English model `vosk-model-small-en-us-0.15` is Apache 2.0 as well. If you
+swap in a different one, check the licence column on the
+[model list](https://alphacephei.com/vosk/models) — not all of them are permissive.
+
+## Disclaimer
+
+Not affiliated with, endorsed by, or supported by Capture One A/S. "Capture One"
+is their trademark, used here only to describe what this tool works with.
+
+This is an independent program. It contains no Capture One code and changes
+nothing inside the application — it sends a keyboard shortcut, exactly as a foot
+pedal or a macro pad would.

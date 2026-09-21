@@ -3,7 +3,8 @@
 Voice Trigger for Capture One  —  macOS + Windows
 ==================================================
 
-Say "Capture One take a photo" and the tethered camera fires.
+Say "Capture One focus" and the tethered camera focuses.
+Say "Capture One take a photo" and it fires.
 Runs fully offline. No cloud, no account, no confirmation click.
 
 NOTHING NEEDS EDITING HERE. The script locates the Vosk model on its
@@ -25,10 +26,11 @@ ONE-TIME SETUP
 3) In Capture One:
        Edit > Edit Keyboard Shortcuts
        -> Duplicate the default set, then SELECT it in the dropdown
-       -> Find the "Capture" command (category: Camera)
-       -> Assign exactly this shortcut:
-              macOS:   Option + Shift + A
-              Windows: Ctrl + Alt + Shift + A
+       -> Assign exactly these shortcuts:
+
+          Command                         macOS              Windows
+          Capture                         Option+Shift+A     Ctrl+Alt+Shift+A
+          Start/Stop Camera Autofocus     Option+Shift+F     Ctrl+Alt+Shift+F
 
 4) Run it:
        python3 voice_trigger.py
@@ -58,28 +60,40 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
 
 # ====================================================================
-# Trigger phrases
+# Voice commands
 #
-# Any of these fires the shutter. Lowercase only, no punctuation.
-# Use two words or more — a single word causes constant false
-# triggers during normal conversation.
+# Each command has its own phrases and its own keyboard shortcut.
+# The shortcut must match what is assigned in Capture One.
+#
+# Phrases: lowercase only, no punctuation, two words or more — a
+# single word causes constant false triggers during conversation.
 #
 # Every word must exist in your model's vocabulary. Unknown words are
-# skipped silently, so run with --verbose after changing these and
+# skipped silently, so run with --verbose after changing phrases and
 # watch for "missing in vocabulary" warnings.
+#
+# Each command also has its own cooldown, so "focus" followed straight
+# away by "take a photo" works, while an echo can't fire the same
+# command twice.
 # ====================================================================
-TRIGGER_PHRASES = [
-    "capture one take a photo",
-    "capture one shoot",
-]
+COMMANDS = {
+    "focus": {
+        "phrases": ["capture one focus"],
+        "mac_key": "f",
+        "mac_modifiers": "option down, shift down",
+        "win_shortcut": "ctrl+alt+shift+f",
+        "cooldown": 1.5,
+    },
+    "capture": {
+        "phrases": ["capture one take a photo", "capture one shoot"],
+        "mac_key": "a",
+        "mac_modifiers": "option down, shift down",
+        "win_shortcut": "ctrl+alt+shift+a",
+        "cooldown": 2.0,
+    },
+}
 
-COOLDOWN = 2.0        # seconds of lockout after a shot
 INPUT_DEVICE = None   # None = system default. Or a number from --devices.
-
-# Must match the shortcut assigned in Capture One
-MAC_KEY = "a"
-MAC_MODIFIERS = "option down, shift down"
-WIN_SHORTCUT = "ctrl+alt+shift+a"
 
 APP_HINT = "Capture One"
 WIN_PROCESS = "Capture One.exe"
@@ -141,35 +155,35 @@ def find_model():
 
 
 # ====================================================================
-# Firing the shutter
+# Sending the shortcut
 # ====================================================================
 
 if IS_MAC:
 
-    def _play(sound):
-        subprocess.Popen(["afplay", f"/System/Library/Sounds/{sound}.aiff"],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # A different sound per command, so you know what happened
+    # without looking at the screen.
+    SOUNDS = {"focus": "Tink", "capture": "Glass", "error": "Basso"}
 
-    def beep_ok():
-        _play("Glass")
+    def play(name):
+        subprocess.Popen(
+            ["afplay", f"/System/Library/Sounds/{SOUNDS.get(name, 'Glass')}.aiff"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
 
-    def beep_fail():
-        _play("Basso")
-
-    def fire():
+    def send(name, cmd):
         script = (
             f'tell application "{APP_HINT}" to activate\n'
             f"delay 0.2\n"
             f'tell application "System Events" to '
-            f'keystroke "{MAC_KEY}" using {{{MAC_MODIFIERS}}}'
+            f'keystroke "{cmd["mac_key"]}" using {{{cmd["mac_modifiers"]}}}'
         )
         res = subprocess.run(["osascript", "-e", script],
                              capture_output=True, text=True)
         if res.returncode != 0:
             print("  !! ", res.stderr.strip())
-            beep_fail()
+            play("error")
             return False
-        beep_ok()
+        play(name)
         return True
 
 elif IS_WINDOWS:
@@ -179,11 +193,11 @@ elif IS_WINDOWS:
     import win32process
     import psutil
 
-    def beep_ok():
-        winsound.Beep(1200, 120)
+    # (frequency Hz, duration ms)
+    TONES = {"focus": (900, 80), "capture": (1200, 120), "error": (300, 400)}
 
-    def beep_fail():
-        winsound.Beep(300, 400)
+    def play(name):
+        winsound.Beep(*TONES.get(name, TONES["capture"]))
 
     def _is_front():
         hwnd = win32gui.GetForegroundWindow()
@@ -195,7 +209,7 @@ elif IS_WINDOWS:
         except Exception:
             return False
 
-    def _focus():
+    def _focus_window():
         hits = []
 
         def _enum(hwnd, _):
@@ -215,17 +229,38 @@ elif IS_WINDOWS:
         except Exception:
             return False
 
-    def fire():
-        if not _is_front() and not _focus():
+    def send(name, cmd):
+        if not _is_front() and not _focus_window():
             print("  !! Capture One not found.")
-            beep_fail()
+            play("error")
             return False
-        keyboard.send(WIN_SHORTCUT)
-        beep_ok()
+        keyboard.send(cmd["win_shortcut"])
+        play(name)
         return True
 
 else:
     sys.exit("This script runs on macOS and Windows only.")
+
+
+# ====================================================================
+# Matching
+# ====================================================================
+
+def match(text):
+    """Return the name of the command whose phrase appears in text.
+
+    If several match, the longest phrase wins — it's the most specific.
+    """
+    best, best_len = None, 0
+    for name, cmd in COMMANDS.items():
+        for phrase in cmd["phrases"]:
+            if phrase in text and len(phrase) > best_len:
+                best, best_len = name, len(phrase)
+    return best
+
+
+def all_phrases():
+    return [p for cmd in COMMANDS.values() for p in cmd["phrases"]]
 
 
 # ====================================================================
@@ -267,14 +302,16 @@ def main(verbose=False):
         else sd.query_devices(kind="input")
 
     print(f"Voice Trigger active  ({platform.system()})")
-    print(f"  Model:      {os.path.basename(model_path)}")
-    print(f"  Microphone: {info['name']}")
-    print(f"  Sample rate:{samplerate} Hz")
-    print(f"  Phrases:    " + "  |  ".join(TRIGGER_PHRASES))
+    print(f"  Model:       {os.path.basename(model_path)}")
+    print(f"  Microphone:  {info['name']}")
+    print(f"  Sample rate: {samplerate} Hz")
+    print("  Commands:")
+    for name, cmd in COMMANDS.items():
+        print(f"    {name:8} " + "  |  ".join(cmd["phrases"]))
     print("\nQuit with Ctrl+C\n")
 
     model = Model(model_path)
-    grammar = json.dumps(TRIGGER_PHRASES + ["[unk]"], ensure_ascii=False)
+    grammar = json.dumps(all_phrases() + ["[unk]"], ensure_ascii=False)
     rec = KaldiRecognizer(model, samplerate, grammar)
     rec.SetWords(False)
 
@@ -285,7 +322,7 @@ def main(verbose=False):
             print(status, file=sys.stderr)
         audio_q.put(bytes(indata))
 
-    last_fire = 0.0
+    last_fired = {name: 0.0 for name in COMMANDS}
 
     with sd.RawInputStream(samplerate=samplerate, blocksize=4000,
                            dtype="int16", channels=1,
@@ -305,14 +342,18 @@ def main(verbose=False):
             if verbose:
                 print(f"    heard: {text}")
 
-            if any(p in text for p in TRIGGER_PHRASES):
-                now = time.time()
-                if now - last_fire < COOLDOWN:
-                    continue
-                last_fire = now
-                print(f"[{time.strftime('%H:%M:%S')}] '{text}' -> firing")
-                fire()
-                rec.Reset()
+            name = match(text)
+            if name is None:
+                continue
+
+            now = time.time()
+            if now - last_fired[name] < COMMANDS[name]["cooldown"]:
+                continue
+            last_fired[name] = now
+
+            print(f"[{time.strftime('%H:%M:%S')}] '{text}' -> {name}")
+            send(name, COMMANDS[name])
+            rec.Reset()
 
 
 if __name__ == "__main__":
