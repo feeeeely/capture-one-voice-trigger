@@ -191,23 +191,3 @@ Wer Capture One weitergehend steuern will — Varianten, Ebenen, Ausgabe —, fi
 ## Lizenz
 
 MIT
-
----
-
-## Danksagung
-
-Die Spracherkennung übernimmt [Vosk](https://alphacephei.com/vosk/), Apache 2.0.
-Das englische Modell `vosk-model-small-en-us-0.15` steht ebenfalls unter Apache 2.0.
-Wer ein anderes einsetzt, sollte in die Lizenzspalte der
-[Modellliste](https://alphacephei.com/vosk/models) schauen — nicht alle sind frei
-verwendbar.
-
-## Rechtlicher Hinweis
-
-Dieses Projekt steht in keiner Verbindung zu Capture One A/S und wird von dort weder
-unterstützt noch empfohlen. „Capture One" ist eine Marke des Unternehmens und wird
-hier nur verwendet, um zu beschreiben, womit dieses Werkzeug arbeitet.
-
-Es handelt sich um ein eigenständiges Programm. Es enthält keinen Capture-One-Code
-und verändert nichts innerhalb der Anwendung — es sendet ein Tastenkürzel, genau wie
-es ein Fußschalter oder ein Makropad täte.
