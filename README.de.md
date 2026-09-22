@@ -16,7 +16,7 @@ Funktioniert mit Capture One Pro und Capture One CH.
 
 ## Voraussetzungen
 
-- macOS
+- macOS, oder Windows (siehe Hinweis unter Grenzen)
 - Capture One (Pro oder CH) mit funktionierendem Tethering
 - Python 3.10 oder neuer — [hier herunterladen](https://www.python.org/downloads/), falls nicht vorhanden
 
@@ -32,13 +32,15 @@ Oben auf `Code` → `Download ZIP`, dann entpacken. Der Ordner kann liegen, wo d
 
 **2. Installation starten**
 
-Rechtsklick auf den entpackten Ordner → „Neues Terminal beim Ordner". Dann eintippen:
+*Unter macOS:* Rechtsklick auf den entpackten Ordner → „Neues Terminal beim Ordner", dann eintippen:
 
 ```
 bash setup.sh
 ```
 
-Das dauert ein paar Minuten. Es lädt die Spracherkennung herunter (ca. 45 MB) und richtet alles ein.
+*Unter Windows:* Doppelklick auf **`setup.bat`**.
+
+In beiden Fällen dauert es ein paar Minuten. Es lädt die Spracherkennung herunter (ca. 45 MB) und richtet alles ein.
 
 Wenn du von vornherein deutsche Befehle willst, stattdessen:
 
@@ -46,7 +48,7 @@ Wenn du von vornherein deutsche Befehle willst, stattdessen:
 MODEL=vosk-model-small-de-0.15 bash setup.sh
 ```
 
-**2a. Falls macOS die Ausführung blockiert**
+**2a. Falls macOS die Ausführung blockiert** *(nur macOS)*
 
 Beim ersten Start meldet macOS möglicherweise:
 
@@ -71,19 +73,26 @@ Wem das nicht geheuer ist: Der gesamte Quelltext liegt offen in diesem Repositor
 
 - Das Standard-Set **duplizieren** (das Original lässt sich nicht ändern)
 - **Wichtig:** Oben im Auswahlmenü auf dein neues Set umschalten. Wird das vergessen, passiert später nichts.
-- Befehl **„Aufnahme"** suchen (Kategorie *Kamera*) und das Kürzel **Option + Shift + A** vergeben
-- Den Befehl zum **Starten/Stoppen des Kamera-Autofokus** suchen und das Kürzel **Option + Shift + F** vergeben. Am schnellsten findest du ihn, wenn du oben im Suchfeld „Autofokus" eintippst.
+- Die Befehle **„Aufnahme"** (Kategorie *Kamera*) und **Kamera-Autofokus starten/stoppen** suchen. Am schnellsten geht das über das Suchfeld oben im Dialog.
+- Diese Kürzel vergeben:
+
+| Befehl | macOS | Windows |
+|---|---|---|
+| Aufnahme | Option + Shift + A | Strg + Alt + Shift + A |
+| Kamera-Autofokus starten/stoppen | Option + Shift + F | Strg + Alt + Shift + F |
+
+Unter Windows kommt Strg hinzu, weil Alt + Shift dort allein die Tastaturbelegung umschaltet.
 
 Zum Prüfen: Beide Kürzel einmal von Hand drücken. Stellt die Kamera nicht scharf oder löst nicht aus, stimmt etwas an dieser Stelle nicht — dann hilft auch das Skript nicht weiter.
 
 **4. Starten**
 
-Doppelklick auf **`start.command`**
-
-Beim ersten Start fragt macOS zweimal nach Berechtigungen:
+*Unter macOS:* Doppelklick auf **`start.command`**. Beim ersten Start fragt macOS zweimal nach Berechtigungen:
 
 - **Mikrofon** — erlauben
 - **Bedienungshilfen** — erlauben, danach das Terminal schließen und `start.command` erneut starten
+
+*Unter Windows:* Doppelklick auf **`start.bat`**. Kommen die Tastendrücke nicht bei Capture One an, Rechtsklick → **Als Administrator ausführen** — Windows schränkt ein, welche Programme anderen Tastendrücke schicken dürfen.
 
 Das Fenster muss geöffnet bleiben, solange du den Sprachauslöser benutzt. Beenden mit `Strg + C` oder durch Schließen des Fensters.
 
@@ -189,7 +198,7 @@ Die Spracherkennung übernimmt [Vosk](https://alphacephei.com/vosk/). Weil nur z
 
 ## Grenzen
 
-- **Nur macOS getestet.** Der Windows-Teil ist im Code vorhanden, aber ungeprüft. Rückmeldungen willkommen.
+- **Windows ist ungetestet.** Code und Installation sind vorhanden und sollten funktionieren, aber noch niemand hat sie mit einer echten Kamera ausprobiert. Wer es versucht, möge bitte in jedem Fall ein Issue aufmachen — das ist im Moment das Wichtigste für dieses Projekt.
 - **Capture One muss im Vordergrund sein.** Das Skript holt es selbst nach vorn, bei mehreren Fenstern kann es aber das falsche erwischen.
 - **Vosk ist auf 0.3.44 festgelegt.** Ab 0.3.45 gibt es keine macOS-Pakete mehr. Nicht erhöhen.
 - **Python 3.10 mindestens.** Für 3.9 gibt es kein `cffi`-Paket für Intel-Macs — und 3.9 ist genau das, was macOS mitbringt.

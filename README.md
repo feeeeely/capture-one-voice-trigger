@@ -14,7 +14,7 @@ Works with Capture One Pro and Capture One CH.
 
 ## Requirements
 
-- macOS
+- macOS, or Windows (see the note under Limitations)
 - Capture One (Pro or CH) with working tethering
 - Python 3.10 or newer — [download here](https://www.python.org/downloads/) if you don't have it
 
@@ -30,15 +30,17 @@ Click `Code` → `Download ZIP`, then unzip it. The folder can live anywhere.
 
 **2. Run the installer**
 
-Right-click the unzipped folder → "New Terminal at Folder". Then type:
+*On macOS:* right-click the unzipped folder → "New Terminal at Folder", then type:
 
 ```
 bash setup.sh
 ```
 
-This takes a few minutes. It downloads the speech model (~45 MB) and sets everything up.
+*On Windows:* double-click **`setup.bat`**.
 
-**2a. If macOS blocks it**
+Either way this takes a few minutes. It downloads the speech model (~45 MB) and sets everything up.
+
+**2a. If macOS blocks it** *(macOS only)*
 
 On first launch macOS may say:
 
@@ -62,19 +64,26 @@ If that makes you uneasy: the full source is in this repository. For a program t
 
 - **Duplicate** the default set (the original is read-only)
 - **Important:** switch to your new set in the dropdown at the top. Forgetting this is the single most common failure.
-- Find the **"Capture"** command (category *Camera*) and assign **Option + Shift + A**
-- Find **"Start/Stop Camera Autofocus"** and assign **Option + Shift + F**. The search field at the top of the dialog finds it fastest.
+- Find the **"Capture"** command (category *Camera*) and the **"Start/Stop Camera Autofocus"** command. The search field at the top of the dialog finds them fastest.
+- Assign these shortcuts:
+
+| Command | macOS | Windows |
+|---|---|---|
+| Capture | Option + Shift + A | Ctrl + Alt + Shift + A |
+| Start/Stop Camera Autofocus | Option + Shift + F | Ctrl + Alt + Shift + F |
+
+Windows uses an extra Ctrl because Alt + Shift on its own switches the keyboard layout.
 
 Test both by hand. If the camera doesn't focus or fire, something is wrong here — the script won't help until it does.
 
 **4. Start**
 
-Double-click **`start.command`**
-
-macOS asks for two permissions on first run:
+*On macOS:* double-click **`start.command`**. macOS asks for two permissions on first run:
 
 - **Microphone** — allow
 - **Accessibility** — allow, then close the Terminal window and launch `start.command` again
+
+*On Windows:* double-click **`start.bat`**. If the keystrokes don't reach Capture One, right-click it and choose **Run as administrator** — Windows restricts which programs may send keystrokes to others.
 
 The window must stay open while you use the trigger. Quit with `Ctrl + C` or by closing the window.
 
@@ -182,7 +191,7 @@ Recognition is handled by [Vosk](https://alphacephei.com/vosk/). Because it only
 
 ## Limitations
 
-- **Only tested on macOS.** Windows code is present but unverified. Reports welcome.
+- **Windows is untested.** The code and installer are there and should work, but nobody has run them against a real camera yet. If you try it, please open an issue either way — that's the one thing this project needs most.
 - **Capture One must be frontmost.** The script brings it forward itself, but with several windows open it may pick the wrong one.
 - **Vosk is pinned to 0.3.44.** From 0.3.45 onwards there are no macOS wheels. Don't bump it.
 - **Python 3.10 minimum.** `cffi` publishes no Intel-Mac wheels for 3.9, which is what macOS ships as the system Python.

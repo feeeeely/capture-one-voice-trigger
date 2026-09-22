@@ -1,0 +1,11 @@
+# Batch files carry CRLF in the repository itself and must stay that way.
+# Git's eol conversion is not applied to GitHub's "Download ZIP" archives,
+# so relying on it would hand Windows users LF-only .bat files.
+*.bat -text
+
+# Everything else uses LF.
+* text=auto
+*.sh      text eol=lf
+*.command text eol=lf
+*.py      text eol=lf
+*.md      text eol=lf
